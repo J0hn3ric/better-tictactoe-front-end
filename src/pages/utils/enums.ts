@@ -1,0 +1,20 @@
+export enum RequestState {
+  INITIAL = 'INITIAL',
+  SEND_DATA = 'SEND_DATA',
+  SENDING_DATA = 'SENDING_DATA',
+  DATA_SENDED = 'DATA_SENDED',
+  ERROR_SENDING_DATA = 'ERROR_SENDING_DATA',
+}
+
+export enum InfoActionKind {
+ RESET = "RESET",
+ UPDATE = "UPDATE"
+}
+
+export enum RequestActionKind {
+  START_SEND = 'START_SEND',
+  SENDING = 'SENDING',
+  SEND_SUCCESS = 'SEND_SUCCESS',
+  SEND_ERROR = 'SEND_ERROR',
+  RESET = 'RESET'
+}

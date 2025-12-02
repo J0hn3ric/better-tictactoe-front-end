@@ -1,73 +1,63 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import { BaseResponse } from '../interfaces';
+import { RequestActionKind, RequestState } from './utils/enums';
+import { SendingMessage } from './components/Dialogs/SendingMessage';
+import { ErrorMessage } from './components/Dialogs/ErrorMessage';
+import { SentMessage } from './components/Dialogs/SentMessage';
+import nameService from '../services/nameService';
+import { requestStateReducer } from './reducers/requestStateReducer';
 
 export function CheckName() {
-  const [status, setStatus] = useState<'INITIAL' | 'SEND_DATA' | 'SENDING_DATA' | 'DATA_SENDED' | 'ERROR_SENDING_DATA'>();
+  const [status, dispatchStatus] = useReducer(requestStateReducer, RequestState.INITIAL);
   const [value, setValue] = useState<string>('');
-  const [data , setData] = useState<BaseResponse>();
+  const [data, setData] = useState<BaseResponse>();
+
+  function reset() { 
+    setValue('');
+    dispatchStatus({ type: RequestActionKind.RESET }); 
+  }
 
   useEffect(() => {
-    if(status === 'SEND_DATA') {
-      setStatus('SENDING_DATA');
-      fetch('http://localhost:3001/info/validate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: value,
-        })
-      })
+    if(status === RequestState.SEND_DATA) {
+      dispatchStatus({ type: RequestActionKind.SENDING });
+      nameService.validateNameFromServer(value)
       .then((rawResponse) => {
-        if([200, 201].includes(rawResponse.status)) {
+        if(rawResponse.ok) {
           return rawResponse.json();
         } else {
           throw new Error();
         }        
       })
       .then((response: BaseResponse) => {
-        setStatus('DATA_SENDED');
+        dispatchStatus({ type: RequestActionKind.SEND_SUCCESS });
         setData(response);
       })
       .catch(e => {
-        setStatus('ERROR_SENDING_DATA');
+        dispatchStatus({ type: RequestActionKind.SEND_ERROR });
       })
     }
-  }, [status, value]);
-
-  if (status === 'ERROR_SENDING_DATA') {
-    return (
-      <div>
-        <h1>ERRORE INVIO DATI</h1>
-        <button onClick={() => setStatus('INITIAL')}>RIPROVA</button>
-      </div>
-    );
-  }
-
-  if(status === 'SEND_DATA' || status === 'SENDING_DATA') {
-    return (
-      <div>
-        <h1>INVIO IN CORSO</h1>
-        <button onClick={() => setStatus('INITIAL')}>ANNULLA</button>
-      </div>
-    );
-  }
-
-  if(status === 'DATA_SENDED') {
-    return (<div>
-        {data?.success === true && <h1>DATI INVIATI VALIDI</h1>}
-        {data?.success === false && <h1>DATI INVIATI NON VALIDI</h1>}
-        <button onClick={() => setStatus('INITIAL')}>INVIA UN ALTRO VALORE</button>
-    </div>)
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   return (
     <div>
+      { status === RequestState.ERROR_SENDING_DATA && <ErrorMessage onClick={reset} /> }
+
+      { 
+        (status === RequestState.SEND_DATA || status === RequestState.SENDING_DATA) &&
+        <SendingMessage onClick={reset} />
+      }
+
+      { status === RequestState.DATA_SENDED && <SentMessage onClick={reset} data={data} /> }
+
+
       <h1>INSERISCI IL NOME</h1>
       <input type="text" value={value} onChange={(e) => {
         setValue(e.target.value);
       }}></input>
-      <button onClick={() => setStatus('SEND_DATA')}>VALIDA</button>
+      <button onClick={() => {
+        dispatchStatus({ type: RequestActionKind.START_SEND });
+      }}>VALIDA</button>
     </div>
   );
 }

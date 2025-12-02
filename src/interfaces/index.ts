@@ -31,3 +31,14 @@ interface BaseResponseError extends BaseResponseInteface {
 }
 
 export type BaseResponse = BaseResponseSuccess | BaseResponseError;
+
+export interface InfoValue {
+  name: string;
+  age: number | '';
+  married: boolean | null;
+  dateOfBirth: string;
+}
+
+export interface MessageProps {
+  onClick: () => void;
+}
